@@ -1,3 +1,4 @@
+// アプリ1件の形（仕様書 6-3 の apps 表に合わせる）
 export type AppInfo = {
   id: string;
   name: string;
@@ -12,13 +13,12 @@ export type AppInfo = {
   owner_id: string;
 };
 
-// アプリ1件の形（仕様書 6-3 の apps 表に合わせる）
-export function getPublishedApps():AppInfo[]{
-    return apps.filter((app)=>app.is_published);
+export function getPublishedApps(): AppInfo[] {
+  return apps.filter((app) => app.is_published);
 }
 
-export function getAppById(id:string):AppInfo | undefined{
-    return getPublishedApps().find((app)=>app.id ===id);
+export function getAppById(id: string): AppInfo | undefined {
+  return getPublishedApps().find((app) => app.id === id);
 }
 
 // ダミーのアプリ（あとで Supabase に差し替える）
