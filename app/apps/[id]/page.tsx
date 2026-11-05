@@ -38,7 +38,10 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
         <dt className="text-zinc-500">対応OS</dt>
         <dd>{app.min_os}</dd>
         <dt className="text-zinc-500">更新日</dt>
-        <dd>{app.updated_at}</dd>
+        <dd>
+          {new Date(app.updated_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
+        </dd>
+
       </dl>
       <div className="mt-8">
         {app.download_url ? (
