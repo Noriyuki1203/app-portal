@@ -1,8 +1,12 @@
-import { getAppById } from "@/data/apps";
+import { getAppById, getPublishedApps } from "@/data/apps";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import ScreenshotGallery from "@/components/ScreenshotGallery";
 import { getScreenshotsByAppId } from "@/data/screenshots";
+
+export function generateStaticParams() {
+  return getPublishedApps().map((app) => ({ id: app.id }));
+}
 
 export async function generateMetadata(props: PageProps<"/apps/[id]">): Promise<Metadata> {
   const { id } = await props.params;
