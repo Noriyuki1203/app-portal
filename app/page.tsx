@@ -1,8 +1,8 @@
 import { getPublishedApps } from "@/data/apps";
 import AppList from "@/components/AppList";
 
-export default function Home() {
-  const apps = getPublishedApps();
+export default async function Home() {
+  const apps = await getPublishedApps();
 
   return (
     <main className="mx-auto max-w-3xl p-8">

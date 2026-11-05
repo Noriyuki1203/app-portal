@@ -4,13 +4,14 @@ import type { Metadata } from "next";
 import ScreenshotGallery from "@/components/ScreenshotGallery";
 import { getScreenshotsByAppId } from "@/data/screenshots";
 
-export function generateStaticParams() {
-  return getPublishedApps().map((app) => ({ id: app.id }));
+export async function generateStaticParams() {
+  const apps = await getPublishedApps();
+  return apps.map((app) => ({ id: app.id }));
 }
 
 export async function generateMetadata(props: PageProps<"/apps/[id]">): Promise<Metadata> {
   const { id } = await props.params;
-  const app = getAppById(id);
+  const app = await getAppById(id);
 
   return {
     title: app ? `${app.name} | アプリ配布サイト` : "見つかりません",
@@ -19,12 +20,12 @@ export async function generateMetadata(props: PageProps<"/apps/[id]">): Promise<
 
 export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
   const { id } = await props.params;
-  const app = getAppById(id);
+  const app = await getAppById(id);
 
   if (!app) {
     notFound();
   }
-  const screenshots = getScreenshotsByAppId(app.id);
+  const screenshots = await getScreenshotsByAppId(app.id);
 
   return (
     <main className="mx-auto max-w-3xl p-8">
