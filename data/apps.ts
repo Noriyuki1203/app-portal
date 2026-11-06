@@ -1,5 +1,6 @@
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag } from "next/cache";
 import { supabase } from "@/lib/supabase/public";
+
 
 export type AppInfo = {
   id: string;
@@ -18,6 +19,7 @@ export type AppInfo = {
 export async function getPublishedApps(): Promise<AppInfo[]> {
   "use cache";
   cacheLife("minutes");
+  cacheTag("app");
 
   const { data, error } = await supabase
     .from("apps")
@@ -35,6 +37,7 @@ export async function getPublishedApps(): Promise<AppInfo[]> {
 export async function getAppById(id: string): Promise<AppInfo | null> {
   "use cache";
   cacheLife("minutes");
+  cacheTag("apps");
 
   const { data, error } = await supabase
     .from("apps")
@@ -48,4 +51,3 @@ export async function getAppById(id: string): Promise<AppInfo | null> {
   }
   return data;
 }
-

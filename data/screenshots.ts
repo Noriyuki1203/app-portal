@@ -1,4 +1,4 @@
-import { cacheLife } from "next/cache";
+import { cacheLife, cacheTag} from "next/cache";
 import { supabase } from "@/lib/supabase/public";
 
 // スクリーンショット1枚の形（仕様書 6-3 の screenshots 表に合わせる）
@@ -12,6 +12,7 @@ export type Screenshot = {
 export async function getScreenshotsByAppId(appId: string): Promise<Screenshot[]> {
   "use cache";
   cacheLife("minutes");
+  cacheTag("apps");
 
   const { data, error } = await supabase
     .from("screenshots")
