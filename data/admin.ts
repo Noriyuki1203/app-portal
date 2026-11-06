@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { AppInfo } from "@/data/apps";
 import type { Screenshot } from "@/data/screenshots";
-import { supabase } from "@/lib/supabase/public";
 
 export async function getAllApps(): Promise<AppInfo[]> {
     const supabase = await createClient();

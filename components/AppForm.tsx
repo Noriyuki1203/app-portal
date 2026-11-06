@@ -1,6 +1,6 @@
 "use client";
 
-import { act, useActionState } from "react";
+import { useActionState } from "react";
 import type { AppInfo } from "@/data/apps";
 import type { FormState } from "@/app/admin/apps/actions";
 
@@ -10,7 +10,7 @@ type Props = {
     app?: AppInfo; //更新の時だけ渡す。追加の時は空
 };
 
-const inputClass = "mt-1 w-full rounded-lg border border-zing-300 px-4 py-2";
+const inputClass = "mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2";
 
 export default function AppForm({ action, app }: Props) {
     const [state, formAction, isPending] = useActionState(action, { error: "" });
@@ -29,7 +29,7 @@ export default function AppForm({ action, app }: Props) {
                     <input
                         name="id"
                         required
-                        pattern="[a-z0-9/-]+"
+                        pattern="[a-z0-9\-]+"
                         placeholder="sample-todo"
                         className={inputClass}
                     />

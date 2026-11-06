@@ -19,7 +19,7 @@ export type AppInfo = {
 export async function getPublishedApps(): Promise<AppInfo[]> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("app");
+  cacheTag("apps");
 
   const { data, error } = await supabase
     .from("apps")
