@@ -76,3 +76,17 @@ export async function updateApp(id: string,
     refresh(); // 今いる管理者ページも作り直す
     return { error: "", message: "保存しました" };
 }
+
+export async function deleteApp(id: string) {
+  await requireLogin();
+  const supabase = await createClient();
+
+  // 行を消す（screenshots の行は on delete cascade で一緒に消える）
+  const { error } = await supabase.from("apps").delete().eq("id", id);
+  if (error) {
+    throw new Error(`削除できませんでした：${error.message}`);
+  }
+
+  updateTag("apps");
+  redirect("/admin");
+}

@@ -1,11 +1,12 @@
 import { Suspense } from "react";
+import DeleteAppButton from "@/components/DeleteAppButton";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requireLogin } from "@/lib/auth";
 import { getAppForEdit } from "@/data/admin";
 import AppForm from "@/components/AppForm";
-import { updateApp } from "../../actions";
+import { deleteApp, updateApp } from "../../actions";
 
 export const metadata: Metadata = {
     title: "アプリの編集｜アプリ配布サイト",
@@ -37,6 +38,9 @@ async function EditContent({ params }: { params: Promise<{ id: string }> }) {
     return (
         <>
             <AppForm action={updateApp.bind(null, app.id)} app={app} />
+            <section className="mt-10 border-t border-zinc-200 pt-6">
+                <DeleteAppButton action={deleteApp.bind(null, app.id)} appName={app.name} />
+            </section>
         </>
     );
 }
