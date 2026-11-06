@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# app-portal
 
-## Getting Started
+自作の Android アプリを紹介・配布するための個人サイトです。
 
-First, run the development server:
+Google Play の「テスター12人・14日間」のクローズドテストを満たせなかったため、配布サイトを自分で作っています。作る過程は Qiita で連載しています。
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> **作成中です。** サイトは、APK を配布できる段階になってから公開する予定です。
+
+## 連載記事（Qiita）
+
+1. 構想編：なぜ自分で配布サイトを作るのか（公開後にリンクを追加）
+
+## 主な機能
+
+**利用者向け**
+
+- アプリ一覧（検索つき）
+- アプリ詳細（説明・スクリーンショット・バージョン・対応 OS・ダウンロードボタン）
+- インストール方法
+- プライバシーポリシー
+
+**管理者向け（ログインが必要）**
+
+- アプリの追加・更新・削除、公開／非公開の切り替え
+- アイコンとスクリーンショットのアップロード、並べ替え
+- パスワードの変更
+
+## しくみ
+
+```
+ 利用者 ──見る──▶ サイト（Next.js / Vercel）
+                     │
+                     ├─ アプリ情報を読む ──▶ データベース（Supabase）
+                     │
+                     └─ ダウンロード ──▶ APK（GitHub Releases）
+
+ 管理者 ──ログイン──▶ 管理者ページ ──追加・更新・削除──▶ データベース
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- APK は配布専用の公開リポジトリの GitHub Releases に置き、データベースには URL だけを登録します
+- アイコンやスクリーンショットは Supabase Storage に置きます
+- 「利用者は公開中のアプリを見るだけ、管理者は書き換えられる」という制限は、Supabase の RLS（行ごとの権限設定）でデータベース側に設定しています
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 使っている技術
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 役割 | 技術 |
+|---|---|
+| 画面 | Next.js 16（App Router・Cache Components）、React 19、TypeScript、Tailwind CSS 4 |
+| データベース・ログイン・画像置き場 | Supabase（PostgreSQL・Auth・Storage） |
+| 公開 | Vercel |
+| APK の置き場所 | GitHub Releases |
 
-## Learn More
+## フォルダの構成
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+├── page.tsx                  アプリ一覧
+├── apps/[id]/page.tsx        アプリ詳細
+├── install/page.tsx          インストール方法
+├── privacy/page.tsx          プライバシーポリシー
+└── admin/                    管理者ページ（ログイン・一覧・追加・編集・パスワード変更）
+components/                   画面の部品
+data/                         データベースから読む関数
+lib/                          Supabase の接続・ログインの確認など
+proxy.ts                      管理者ページの入り口でログインを確かめる
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 手元で動かす
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Node.js と、Supabase のプロジェクトが必要です。
 
-## Deploy on Vercel
+1. 依存パッケージを入れる
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   ```bash
+   npm install
+   ```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+2. プロジェクトの一番上に `.env.local` を作り、Supabase の URL と publishable key を書く
+
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_xxxx
+   ```
+
+3. `next.config.ts` の `images.remotePatterns` にある Supabase の URL を、自分のプロジェクトのものに書き換える
+
+4. 開発用のサーバーを起動して、[http://localhost:3000](http://localhost:3000) を開く
+
+   ```bash
+   npm run dev
+   ```
+
+データベースの表・RLS・Storage の設定は、連載記事の中で順に紹介していきます。
