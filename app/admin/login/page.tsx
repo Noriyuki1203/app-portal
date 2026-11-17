@@ -9,7 +9,7 @@ export default function LoginPage() {
     return (
         <main className="mx-auto max-w-sm p-8">
             <h1 className="text-2xl font-bold">
-                管理者ログイン
+                ログイン
             </h1>
             <LoginForm />
         </main>

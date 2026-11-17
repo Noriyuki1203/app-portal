@@ -9,13 +9,13 @@ import { logout } from "./actions";
 import PlatformBadge from "@/components/PlatformBadge";
 
 export const metadata: Metadata = {
-  title: "管理者ページ｜アプリ配布サイト",
+  title: "管理ページ｜アプリ配布サイト",
 };
 
 export default function AdminPage() {
   return (
     <main className="mx-auto max-w-3xl p-8">
-      <h1 className="text-2xl font-bold">管理者ページ</h1>
+      <h1 className="text-2xl font-bold">管理ページ</h1>
       <Suspense fallback={<p className="mt-4 text-zinc-500">読み込み中...</p>}>
         <AdminContent />
       </Suspense>
@@ -25,14 +25,17 @@ export default function AdminPage() {
 
 async function AdminContent() {
   const user = await requireLogin();
-  const apps = await getAllApps();
+  const apps = await getAllApps(user);
   const displayName = await getMyDisplayName(user.id);
+  const isAdmin = user.role === "admin";
 
   return (
     <>
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p>{user.loginId}でログイン中</p>
+          <p>
+            {user.loginId}でログイン中（{isAdmin ? "管理者" : "投稿者"}）
+          </p>
           <p className="text-sm text-zinc-500">
             サイトでの表示名：
             {displayName === UNSET_NAME ? (
@@ -61,9 +64,22 @@ async function AdminContent() {
         </div>
       </div>
 
+      {isAdmin && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/admin/accounts"
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
+            アカウント管理
+          </Link>
+          <Link href="/admin/logs"
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
+            変更の記録
+          </Link>
+        </div>
+      )}
+
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-xl font-bold">
-          アプリ({apps.length}件)
+          {isAdmin ? "すべてのアプリ" : "自分のアプリ"}({apps.length}件)
         </h2>
         <Link
           href="/admin/apps/new"

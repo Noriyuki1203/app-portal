@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requireLogin } from "@/lib/auth";
+import { getRole, requireLogin } from "@/lib/auth";
 import { DISPLAY_NAME_MAX } from "@/lib/owner";
 
 type LoginState = {
@@ -22,6 +22,14 @@ export async function login(prevState: LoginState, formData: FormData): Promise<
 
   if (error) {
     return { error: "ID かパスワードが違います" };
+  }
+
+  // 管理者でも（停止していない）投稿者でもなければ、すぐにログアウトさせる
+  const { data } = await supabase.auth.getClaims();
+  const role = data?.claims ? await getRole(data.claims.sub) : null;
+  if (!role) {
+    await supabase.auth.signOut();
+    return { error: "このアカウントは現在使えません。管理者に問い合わせてください" };
   }
   redirect("/admin");
 }

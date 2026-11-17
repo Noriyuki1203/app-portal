@@ -4,7 +4,7 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { requireLogin } from "@/lib/auth";
-import { getAppForEdit, getScreenshotsForEdit } from "@/data/admin";
+import { canEdit, getAppForEdit, getScreenshotsForEdit } from "@/data/admin";
 import AppForm from "@/components/AppForm";
 import ImageUploadForm from "@/components/ImageUploadForm";
 import DeleteAppButton from "@/components/DeleteAppButton";
@@ -42,12 +42,13 @@ async function EditContent({
   params: Promise<{ id: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  await requireLogin();
+  const user = await requireLogin();
   const { id } = await params;
   const iconFailed = (await searchParams).icon === "failed";
   const app = await getAppForEdit(id);
 
-  if (!app) {
+  // 他人のアプリは「見つからない」扱い（DBの決まりでも書き換えはできない）
+  if (!app || !canEdit(user, app)) {
     notFound();
   }
   const screenshots = await getScreenshotsForEdit(app.id);
