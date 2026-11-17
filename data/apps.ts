@@ -12,6 +12,8 @@ export type AppInfo = {
   version: string;
   min_os: string;
   download_url: string;
+  // ストアのページの URL（Microsoft Store など）。ストアで配っていなければ null
+  store_url: string | null;
   is_published: boolean;
   updated_at: string;
   owner_id: string | null;

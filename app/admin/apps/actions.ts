@@ -38,6 +38,8 @@ function readAppForm(formData: FormData) {
     version: String(formData.get("version") ?? "").trim(),
     min_os: String(formData.get("min_os") ?? "").trim(),
     download_url: String(formData.get("download_url") ?? "").trim(),
+    // 空なら null（詳細ページに「ストアで入手」ボタンを出さない）
+    store_url: String(formData.get("store_url") ?? "").trim() || null,
     is_published: formData.get("is_published") === "on",
     platform: String(formData.get("platform") ?? ""),
   };
@@ -51,20 +53,23 @@ function validateApp(app: ReturnType<typeof readAppForm>): string | null {
   if (!isPlatform(app.platform)) {
     return "種類を選んでください";
   }
-  // ダウンロード・Webアプリの URL は https:// だけ受け付ける
+  // ダウンロード・Webアプリ・ストアの URL は https:// だけ受け付ける
   // （javascript: などを登録されると、サイトを見た人のブラウザーで勝手に動くおそれがある）
-  if (app.download_url) {
-    let url: URL | null = null;
-    try {
-      url = new URL(app.download_url);
-    } catch {
-      // 下でエラーにする
-    }
-    if (!url || url.protocol !== "https:") {
-      return "URL は https:// で始まる形で入れてください";
-    }
+  if (app.download_url && !isHttps(app.download_url)) {
+    return "ダウンロードURL は https:// で始まる形で入れてください";
+  }
+  if (app.store_url && !isHttps(app.store_url)) {
+    return "ストアのURL は https:// で始まる形で入れてください";
   }
   return null;
+}
+
+function isHttps(value: string): boolean {
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 // ---- 問8-2 追加 ----

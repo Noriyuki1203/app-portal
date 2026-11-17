@@ -98,6 +98,18 @@ export default function AppForm({ action, app }: Props) {
                     className={inputClass}
                 />
             </label>
+            <label className="block">
+                <span className="text-sm text-zinc-600">
+                    ストアのURL（任意。Microsoft Store などでも配っているときだけ。入れると詳細ページに「ストアで入手」ボタンが出ます）
+                </span>
+                <input
+                    name="store_url"
+                    type="url"
+                    defaultValue={initial("store_url", app?.store_url ?? "")}
+                    placeholder="https://apps.microsoft.com/detail/..."
+                    className={inputClass}
+                />
+            </label>
             {!app && (
                 <label className="block">
                     <span className="text-sm text-zinc-600">

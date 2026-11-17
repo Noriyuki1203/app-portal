@@ -22,6 +22,14 @@ export const PLATFORM_BADGE_CLASSES: Record<Platform, string> = {
   web: "bg-amber-100 text-amber-800",
 };
 
+// 「ストアで入手」ボタンに出すストアの名前（apps.store_url があるときだけ使う）
+export const STORE_LABELS: Record<Platform, string> = {
+  android: "Google Play",
+  windows: "Microsoft Store",
+  mac: "Mac App Store",
+  web: "ストア",
+};
+
 // インストール方法のページにタブがある種類（Web はインストール不要）
 export const INSTALLABLE_PLATFORMS: Platform[] = ["android", "windows", "mac"];
 

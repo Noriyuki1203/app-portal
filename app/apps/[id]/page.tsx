@@ -6,7 +6,7 @@ import type { Metadata } from "next";
 import ScreenshotGallery from "@/components/ScreenshotGallery";
 import PlatformBadge from "@/components/PlatformBadge";
 import { getScreenshotsByAppId } from "@/data/screenshots";
-import { PLATFORM_LABELS } from "@/lib/platforms";
+import { PLATFORM_LABELS, STORE_LABELS } from "@/lib/platforms";
 
 export async function generateStaticParams() {
   const apps = await getPublishedApps();
@@ -41,6 +41,7 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
   }
   const screenshots = await getScreenshotsByAppId(app.id);
   const isWeb = app.platform === "web";
+  const hasStore = !isWeb && !!app.store_url;
 
   return (
     <main className="mx-auto max-w-3xl p-8">
@@ -62,9 +63,28 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
           {new Date(app.updated_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
         </dd>
       </dl>
-      <div className="mt-8">
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        {hasStore && (
+          // ストアは別サイトなので新しいタブで開く
+          <a
+            href={app.store_url!}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block rounded-full bg-blue-600 px-6 py-3 font-semibold text-white hover:bg-blue-500"
+          >
+            {STORE_LABELS[app.platform]} で入手
+          </a>
+        )}
         {!app.download_url ? (
-          <p className="text-zinc-500">準備中</p>
+          !hasStore && <p className="text-zinc-500">準備中</p>
+        ) : hasStore ? (
+          // ストアがあるときは、ファイルを直接もらう方は控えめに出す
+          <a
+            href={app.download_url}
+            className="inline-block rounded-full border border-zinc-300 px-6 py-3 font-semibold text-zinc-700 hover:bg-zinc-100"
+          >
+            ファイルを直接ダウンロード
+          </a>
         ) : isWeb ? (
           // Web アプリは新しいタブで開く。rel を付けて、開いた先から元のページを操作されないようにする
           <a
