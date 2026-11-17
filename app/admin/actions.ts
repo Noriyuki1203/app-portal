@@ -1,7 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { updateTag } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { requireLogin } from "@/lib/auth";
+import { DISPLAY_NAME_MAX } from "@/lib/owner";
 
 type LoginState = {
   error: string;
@@ -71,4 +74,40 @@ export async function changePassword(
     return { error: `変更できませんでした：${error.message}` };
   }
   return { error: "", message: "パスワードを変更しました" };
+}
+
+// ---- 作成者の表示名 ----
+type DisplayNameState = {
+  error: string;
+  message?: string;
+};
+
+export async function updateDisplayName(
+  prevState: DisplayNameState,
+  formData: FormData
+): Promise<DisplayNameState> {
+  const user = await requireLogin();
+  // 前後の空白と、改行・タブなどの制御文字を取り除く
+  const name = String(formData.get("display_name") ?? "")
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .trim();
+
+  if (name.length === 0) {
+    return { error: "表示名を入れてください" };
+  }
+  if (name.length > DISPLAY_NAME_MAX) {
+    return { error: `表示名は${DISPLAY_NAME_MAX}文字以内にしてください` };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("profiles")
+    .upsert({ id: user.id, display_name: name, updated_at: new Date().toISOString() });
+
+  if (error) {
+    return { error: `保存できませんでした：${error.message}` };
+  }
+
+  updateTag("apps"); // 一覧・詳細の「作成者」を新しい名前で作り直す
+  return { error: "", message: "表示名を保存しました" };
 }

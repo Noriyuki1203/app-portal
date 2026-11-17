@@ -16,7 +16,12 @@ export type AppInfo = {
   updated_at: string;
   owner_id: string | null;
   platform: Platform;
+  // 作成者の表示名（profiles 表）。公開ページで読むときだけ入る
+  owner?: { display_name: string } | null;
 };
+
+// 公開ページで読む列。owner は apps.owner_id → profiles.id をたどった作成者の表示名
+const PUBLIC_COLUMNS = "*, owner:profiles(display_name)";
 
 export async function getPublishedApps(): Promise<AppInfo[]> {
   "use cache";
@@ -25,7 +30,7 @@ export async function getPublishedApps(): Promise<AppInfo[]> {
 
   const { data, error } = await supabase
     .from("apps")
-    .select("*")
+    .select(PUBLIC_COLUMNS)
     .eq("is_published", true)
     .order("updated_at", { ascending: false });
 
@@ -43,7 +48,7 @@ export async function getAppById(id: string): Promise<AppInfo | null> {
 
   const { data, error } = await supabase
     .from("apps")
-    .select("*")
+    .select(PUBLIC_COLUMNS)
     .eq("id", id)
     .eq("is_published", true)
     .maybeSingle();

@@ -1,4 +1,5 @@
 import { getAppById, getPublishedApps } from "@/data/apps";
+import { ownerName } from "@/lib/owner";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -50,6 +51,8 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
       <p className="mt-4 whitespace-pre-line">{app.description}</p>
       {screenshots.length > 0 && <ScreenshotGallery screenshots={screenshots} />}
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+        <dt className="text-zinc-500">作成者</dt>
+        <dd>{ownerName(app)}</dd>
         <dt className="text-zinc-500">バージョン</dt>
         <dd>{app.version}</dd>
         <dt className="text-zinc-500">{isWeb ? "対応ブラウザ" : "対応OS"}</dt>

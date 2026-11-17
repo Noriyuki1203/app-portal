@@ -3,6 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requireLogin } from "@/lib/auth";
 import { getAllApps } from "@/data/admin";
+import { getMyDisplayName } from "@/data/profiles";
+import { UNSET_NAME } from "@/lib/owner";
 import { logout } from "./actions";
 import PlatformBadge from "@/components/PlatformBadge";
 
@@ -24,12 +26,27 @@ export default function AdminPage() {
 async function AdminContent() {
   const user = await requireLogin();
   const apps = await getAllApps();
+  const displayName = await getMyDisplayName(user.id);
 
   return (
     <>
-      <div className="mt-4 flex items-center justify-between">
-        <p >{user.loginId}でログイン中</p>
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <p>{user.loginId}でログイン中</p>
+          <p className="text-sm text-zinc-500">
+            サイトでの表示名：
+            {displayName === UNSET_NAME ? (
+              <span className="text-red-600">未設定（「表示名の変更」から付けてください）</span>
+            ) : (
+              displayName
+            )}
+          </p>
+        </div>
         <div className="flex gap-2">
+          <Link href="/admin/profile"
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
+            表示名の変更
+          </Link>
           <Link href="/admin/password"
             className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
             パスワード変更
