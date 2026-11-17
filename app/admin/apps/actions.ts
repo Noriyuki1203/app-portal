@@ -43,6 +43,13 @@ export async function createApp(prevState: FormState, formData: FormData): Promi
     return { error: "種類を選んでください" };
   }
 
+  // アイコンは任意。選ばれていれば、アプリを追加する前に画像かどうかを確かめる
+  const icon = formData.get("icon");
+  const hasIcon = icon instanceof File && icon.size > 0;
+  if (hasIcon && !icon.type.startsWith("image/")) {
+    return { error: "アイコンには画像ファイル（png・jpg など）を選んでください" };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.from("apps").insert({ id, ...app });
 
@@ -54,6 +61,18 @@ export async function createApp(prevState: FormState, formData: FormData): Promi
   }
 
   updateTag("apps");
+
+  if (hasIcon) {
+    const result = await uploadImage(id, icon, "icon");
+    const saved =
+      "url" in result &&
+      !(await supabase.from("apps").update({ icon_url: result.url }).eq("id", id)).error;
+    if (!saved) {
+      // アプリ自体は追加できているので、編集画面でアイコンだけやり直してもらう
+      redirect(`/admin/apps/${id}/edit?icon=failed`);
+    }
+  }
+
   redirect("/admin");
 }
 

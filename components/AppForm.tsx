@@ -94,6 +94,14 @@ export default function AppForm({ action, app }: Props) {
                     className={inputClass}
                 />
             </label>
+            {!app && (
+                <label className="block">
+                    <span className="text-sm text-zinc-600">
+                        アイコン（任意。あとから編集画面でも変更できます）
+                    </span>
+                    <input name="icon" type="file" accept="image/*" className="mt-1 block text-sm" />
+                </label>
+            )}
             <label className="flex items-center gap-2">
                 <input name="is_published" type="checkbox" defaultChecked={app?.is_published} />
                 <span>公開する</span>

@@ -29,15 +29,22 @@ export default function EditAppPage(props: PageProps<"/admin/apps/[id]/edit">) {
       </Link>
       <h1 className="mt-4 text-2xl font-bold">アプリの編集</h1>
       <Suspense fallback={<p className="mt-4 text-zinc-500">読み込み中…</p>}>
-        <EditContent params={props.params} />
+        <EditContent params={props.params} searchParams={props.searchParams} />
       </Suspense>
     </main>
   );
 }
 
-async function EditContent({ params }: { params: Promise<{ id: string }> }) {
+async function EditContent({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   await requireLogin();
   const { id } = await params;
+  const iconFailed = (await searchParams).icon === "failed";
   const app = await getAppForEdit(id);
 
   if (!app) {
@@ -53,6 +60,11 @@ async function EditContent({ params }: { params: Promise<{ id: string }> }) {
       {/* 問8-5 アイコン */}
       <section className="mt-10">
         <h2 className="text-xl font-bold">アイコン</h2>
+        {iconFailed && (
+          <p className="mt-2 text-sm text-red-600">
+            アプリは追加しましたが、アイコンを保存できませんでした。ここからもう一度アップロードしてください。
+          </p>
+        )}
         {app.icon_url ? (
           <Image
             src={app.icon_url}
