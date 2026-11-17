@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { requireLogin } from "@/lib/auth";
 import { getAllApps } from "@/data/admin";
 import { logout } from "./actions";
+import PlatformBadge from "@/components/PlatformBadge";
 
 export const metadata: Metadata = {
   title: "管理者ページ｜アプリ配布サイト",
@@ -60,6 +61,7 @@ async function AdminContent() {
           <tr>
             <th className="py-2">アプリ名</th>
             <th className="py-2">ID</th>
+            <th className="py-2">種類</th>
             <th className="py-2">状態</th>
             <th className="py-2">更新日</th>
             <th className="py-2"></th>
@@ -70,6 +72,9 @@ async function AdminContent() {
             <tr key={app.id} className="border-b border-zinc-200">
               <td className="py-2">{app.name}</td>
               <td className="py-2 text-zinc-500">{app.id}</td>
+              <td className="py-2">
+                <PlatformBadge platform={app.platform} />
+              </td>
               <td className="py-2">
                 {app.is_published ? (
                   "公開中"

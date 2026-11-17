@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 import type { AppInfo } from "@/data/apps";
 import type { FormState } from "@/app/admin/apps/actions";
+import { PLATFORMS, PLATFORM_LABELS } from "@/lib/platforms";
 
 type Props = {
     action: (prevState: FormState, formData: FormData) =>
@@ -36,6 +37,21 @@ export default function AppForm({ action, app }: Props) {
                 )}
             </label>
             <label className="block">
+                <span className="text-sm text-zinc-600">種類</span>
+                <select
+                    name="platform"
+                    required
+                    defaultValue={app?.platform ?? "android"}
+                    className={inputClass}
+                >
+                    {PLATFORMS.map((p) => (
+                        <option key={p} value={p}>
+                            {PLATFORM_LABELS[p]}
+                        </option>
+                    ))}
+                </select>
+            </label>
+            <label className="block">
                 <span className="text-sm text-zinc-600">アプリ名</span>
                 <input name="name" required defaultValue={app?.name} className={inputClass} />
             </label>
@@ -58,17 +74,19 @@ export default function AppForm({ action, app }: Props) {
                     <input name="version" defaultValue={app?.version} placeholder="1.0.0" className={inputClass} />
                 </label>
                 <label className="block">
-                    <span className="text-sm text-zinc-600">対応OS</span>
+                    <span className="text-sm text-zinc-600">対応OS（Web は対応ブラウザ）</span>
                     <input
                         name="min_os"
                         defaultValue={app?.min_os}
-                        placeholder="Android 8.0以上"
+                        placeholder="Android 8.0以上 / Windows 10以上 / Chrome・Safari"
                         className={inputClass}
                     />
                 </label>
             </div>
             <label className="block">
-                <span className="text-sm text-zinc-600">ダウンロードURL（APK）</span>
+                <span className="text-sm text-zinc-600">
+                    ダウンロードURL（Android・PC はファイルの URL、Web はアプリを開く URL）
+                </span>
                 <input
                     name="download_url"
                     type="url"

@@ -1,5 +1,6 @@
 import { cacheLife, cacheTag } from "next/cache";
 import { supabase } from "@/lib/supabase/public";
+import type { Platform } from "@/lib/platforms";
 
 
 export type AppInfo = {
@@ -14,6 +15,7 @@ export type AppInfo = {
   is_published: boolean;
   updated_at: string;
   owner_id: string | null;
+  platform: Platform;
 };
 
 export async function getPublishedApps(): Promise<AppInfo[]> {

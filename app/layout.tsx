@@ -16,7 +16,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "アプリ配布サイト",
-  description: "個人で作った Android アプリを紹介・配布するサイトです。",
+  description: "個人で作った Android・PC・Web アプリを紹介・配布するサイトです。",
+  openGraph:{
+    title:"アプリ配布サイト",
+    description: "個人で作った Android・PC・Web アプリを紹介・配布するサイトです。",
+    siteName: "アプリ配布サイト",
+    locale: "ja_JP",
+    type: "website",
+  }
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

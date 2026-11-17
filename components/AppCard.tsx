@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import type { AppInfo } from "@/data/apps";
+import PlatformBadge from "./PlatformBadge";
 
 type Props = {
   app: AppInfo;
@@ -28,7 +29,10 @@ export default function AppCard({ app }: Props) {
       <div>
         <p className="font-semibold">{app.name}</p>
         <p className="text-sm text-zinc-600">{app.summary}</p>
-        <p className="mt-2 text-xs text-zinc-500">{app.version}</p>
+        <div className="mt-2 flex items-center gap-2">
+          <PlatformBadge platform={app.platform} />
+          <span className="text-xs text-zinc-500">{app.version}</span>
+        </div>
       </div>
     </Link>
   );

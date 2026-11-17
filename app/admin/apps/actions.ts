@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requireLogin } from "@/lib/auth";
 import { BUCKET, extensionOf, pathFromPublicUrl } from "@/lib/storage";
+import { isPlatform } from "@/lib/platforms";
 
 export type FormState = {
   error: string;
@@ -21,6 +22,7 @@ function readAppForm(formData: FormData) {
     min_os: String(formData.get("min_os") ?? "").trim(),
     download_url: String(formData.get("download_url") ?? "").trim(),
     is_published: formData.get("is_published") === "on",
+    platform: String(formData.get("platform") ?? ""),
   };
 }
 
@@ -36,6 +38,9 @@ export async function createApp(prevState: FormState, formData: FormData): Promi
   }
   if (!app.name) {
     return { error: "アプリ名を入れてください" };
+  }
+  if (!isPlatform(app.platform)) {
+    return { error: "種類を選んでください" };
   }
 
   const supabase = await createClient();
@@ -63,6 +68,9 @@ export async function updateApp(
   const app = readAppForm(formData);
   if (!app.name) {
     return { error: "アプリ名を入れてください" };
+  }
+  if (!isPlatform(app.platform)) {
+    return { error: "種類を選んでください" };
   }
 
   const supabase = await createClient();
