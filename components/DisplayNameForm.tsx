@@ -20,7 +20,7 @@ export default function DisplayNameForm({ current }: Props) {
           required
           maxLength={DISPLAY_NAME_MAX}
           defaultValue={current === UNSET_NAME ? "" : current}
-          placeholder="例：ノリ"
+          placeholder="例：たろう"
           className="mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2"
         />
       </label>
