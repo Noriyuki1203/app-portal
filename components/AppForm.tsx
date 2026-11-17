@@ -15,6 +15,9 @@ const inputClass = "mt-1 w-full rounded-lg border border-zinc-300 px-4 py-2";
 
 export default function AppForm({ action, app }: Props) {
     const [state, formAction, isPending] = useActionState(action, { error: "" });
+    // エラーで戻ってきたときは、送った内容を初期値にする（送信後にフォームが空に戻るのを防ぐ）
+    const sent = state.values;
+    const initial = (name: string, saved?: string) => (sent ? sent[name] ?? "" : saved);
 
     return (
         <form action={formAction} className="mt-6 space-y-4">
@@ -31,6 +34,7 @@ export default function AppForm({ action, app }: Props) {
                         name="id"
                         required
                         pattern="[a-z0-9\-]+"
+                        defaultValue={initial("id")}
                         placeholder="sample-todo"
                         className={inputClass}
                     />
@@ -41,7 +45,7 @@ export default function AppForm({ action, app }: Props) {
                 <select
                     name="platform"
                     required
-                    defaultValue={app?.platform ?? "android"}
+                    defaultValue={initial("platform", app?.platform) ?? "android"}
                     className={inputClass}
                 >
                     {PLATFORMS.map((p) => (
@@ -53,31 +57,31 @@ export default function AppForm({ action, app }: Props) {
             </label>
             <label className="block">
                 <span className="text-sm text-zinc-600">アプリ名</span>
-                <input name="name" required defaultValue={app?.name} className={inputClass} />
+                <input name="name" required defaultValue={initial("name", app?.name)} className={inputClass} />
             </label>
             <label className="block">
                 <span className="text-sm text-zinc-600">ひとこと説明（一覧に出る）</span>
-                <input name="summary" defaultValue={app?.summary} className={inputClass} />
+                <input name="summary" defaultValue={initial("summary", app?.summary)} className={inputClass} />
             </label>
             <label className="block">
                 <span className="text-sm text-zinc-600">くわしい説明</span>
                 <textarea
                     name="description"
                     rows={5}
-                    defaultValue={app?.description}
+                    defaultValue={initial("description", app?.description)}
                     className={inputClass}
                 />
             </label>
             <div className="grid gap-4 sm:grid-cols-2">
                 <label className="block">
                     <span className="text-sm text-zinc-600">バージョン</span>
-                    <input name="version" defaultValue={app?.version} placeholder="1.0.0" className={inputClass} />
+                    <input name="version" defaultValue={initial("version", app?.version)} placeholder="1.0.0" className={inputClass} />
                 </label>
                 <label className="block">
                     <span className="text-sm text-zinc-600">対応OS（Web は対応ブラウザ）</span>
                     <input
                         name="min_os"
-                        defaultValue={app?.min_os}
+                        defaultValue={initial("min_os", app?.min_os)}
                         placeholder="Android 8.0以上 / Windows 10以上 / Chrome・Safari"
                         className={inputClass}
                     />
@@ -90,7 +94,7 @@ export default function AppForm({ action, app }: Props) {
                 <input
                     name="download_url"
                     type="url"
-                    defaultValue={app?.download_url}
+                    defaultValue={initial("download_url", app?.download_url)}
                     className={inputClass}
                 />
             </label>
@@ -103,10 +107,15 @@ export default function AppForm({ action, app }: Props) {
                 </label>
             )}
             <label className="flex items-center gap-2">
-                <input name="is_published" type="checkbox" defaultChecked={app?.is_published} />
+                <input name="is_published" type="checkbox" defaultChecked={sent ? sent.is_published === "on" : app?.is_published} />
                 <span>公開する</span>
             </label>
-            {state.error && <p className="text-sm text-red-600">{state.error}</p>}
+            {state.error && (
+                <p className="text-sm text-red-600">
+                    {state.error}
+                    {!app && sent && "（アイコンを選んでいた場合は、もう一度選んでください）"}
+                </p>
+            )}
             {state.message && <p className="text-sm text-green-700">{state.message}</p>}
 
             <button

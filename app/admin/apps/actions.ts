@@ -10,7 +10,22 @@ import { isPlatform } from "@/lib/platforms";
 export type FormState = {
   error: string;
   message?: string;
+  // エラーのときに、入力した内容をフォームへ戻すための値（React 19 は送信後にフォームを空に戻すため）
+  values?: Record<string, string>;
 };
+
+// 送った内容をそのまま返す（ファイルは戻せないので除く）
+function keepValues(formData: FormData): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const [key, value] of formData.entries()) {
+    if (typeof value === "string" && !key.startsWith("$")) values[key] = value;
+  }
+  return values;
+}
+
+function fail(formData: FormData, error: string): FormState {
+  return { error, values: keepValues(formData) };
+}
 
 // フォームの値を、apps 表に書く形にまとめる（追加と更新で共通）
 function readAppForm(formData: FormData) {
@@ -58,18 +73,18 @@ export async function createApp(prevState: FormState, formData: FormData): Promi
   const app = readAppForm(formData);
 
   if (!/^[a-z0-9-]+$/.test(id)) {
-    return { error: "ID は半角の小文字・数字・ハイフン（-）だけで書いてください" };
+    return fail(formData, "ID は半角の小文字・数字・ハイフン（-）だけで書いてください");
   }
   const invalid = validateApp(app);
   if (invalid) {
-    return { error: invalid };
+    return fail(formData, invalid);
   }
 
   // アイコンは任意。選ばれていれば、アプリを追加する前に画像かどうかを確かめる
   const icon = formData.get("icon");
   const hasIcon = icon instanceof File && icon.size > 0;
   if (hasIcon && !icon.type.startsWith("image/")) {
-    return { error: "アイコンには画像ファイル（png・jpg など）を選んでください" };
+    return fail(formData, "アイコンには画像ファイル（png・jpg など）を選んでください");
   }
 
   const supabase = await createClient();
@@ -77,9 +92,9 @@ export async function createApp(prevState: FormState, formData: FormData): Promi
 
   if (error) {
     if (error.code === "23505") {
-      return { error: "その ID はもう使われています" };
+      return fail(formData, "その ID はもう使われています");
     }
-    return { error: `追加できませんでした：${error.message}` };
+    return fail(formData, `追加できませんでした：${error.message}`);
   }
 
   updateTag("apps");
@@ -109,7 +124,7 @@ export async function updateApp(
   const app = readAppForm(formData);
   const invalid = validateApp(app);
   if (invalid) {
-    return { error: invalid };
+    return fail(formData, invalid);
   }
 
   const supabase = await createClient();
@@ -120,11 +135,11 @@ export async function updateApp(
     .select("id");
 
   if (error) {
-    return { error: `保存できませんでした：${error.message}` };
+    return fail(formData, `保存できませんでした：${error.message}`);
   }
   // DBの決まりで弾かれると、エラーではなく「0件更新」になる（他人のアプリ・停止中など）
   if (!updated || updated.length === 0) {
-    return { error: "保存できませんでした（このアプリを変更する権限がありません）" };
+    return fail(formData, "保存できませんでした（このアプリを変更する権限がありません）");
   }
 
   updateTag("apps");
