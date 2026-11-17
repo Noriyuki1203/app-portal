@@ -1,4 +1,3 @@
-import LoginPage from "@/app/admin/login/page";
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
@@ -28,7 +27,7 @@ export async function updateSession(request:NextRequest) {
     const isLoggedIn = !!data?.claims;
     const isLoginPage =  request.nextUrl.pathname === "/admin/login";
 
-    if(!isLoggedIn && !LoginPage){
+    if(!isLoggedIn && !isLoginPage){
         const url = request.nextUrl.clone();
         url.pathname = "/admin/login";
         return NextResponse.redirect(url);
