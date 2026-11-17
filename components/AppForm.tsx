@@ -20,7 +20,7 @@ export default function AppForm({ action, app }: Props) {
     const initial = (name: string, saved?: string) => (sent ? sent[name] ?? "" : saved);
 
     return (
-        <form action={formAction} className="mt-6 space-y-4">
+        <form key={state.attempt ?? 0} action={formAction} className="mt-6 space-y-4">
             <label className="block">
                 <span className="text-sm text-zinc-600">
                     ID(URLに使用する。後からは変えられません)

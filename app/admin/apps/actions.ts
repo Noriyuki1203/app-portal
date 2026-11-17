@@ -12,6 +12,8 @@ export type FormState = {
   message?: string;
   // エラーのときに、入力した内容をフォームへ戻すための値（React 19 は送信後にフォームを空に戻すため）
   values?: Record<string, string>;
+  // エラーごとに変わる番号。フォームを作り直して、選択欄（select）にも送った値を反映させる
+  attempt?: number;
 };
 
 // 送った内容をそのまま返す（ファイルは戻せないので除く）
@@ -24,7 +26,7 @@ function keepValues(formData: FormData): Record<string, string> {
 }
 
 function fail(formData: FormData, error: string): FormState {
-  return { error, values: keepValues(formData) };
+  return { error, values: keepValues(formData), attempt: Date.now() };
 }
 
 // フォームの値を、apps 表に書く形にまとめる（追加と更新で共通）
