@@ -123,14 +123,14 @@ async function AccountsContent() {
                 </td>
                 <td className="py-2 text-zinc-500">{dateTime(a.lastSignInAt)}</td>
                 <td className="py-2">
-                  {a.role === "poster" && <PosterActions userId={a.id} disabled={a.disabled} />}
+                  {a.role === "poster" && <PosterActions userId={a.id} loginId={a.loginId} disabled={a.disabled} appCount={a.appCount} />}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
         <p className="mt-4 text-sm text-zinc-500">
-          停止すると、その人はログインできなくなり、アプリの追加・変更もできなくなります。公開中のアプリはそのまま残るので、必要なら「すべてのアプリ」から非公開にしてください。
+          停止すると、その人はログインできなくなり、アプリの追加・変更もできなくなります。公開中のアプリはそのまま残るので、必要なら「すべてのアプリ」から非公開にしてください。停止中のアカウントは削除できます（その人のアプリは、あなたが作成者として引き継ぎます）。
         </p>
       </section>
     </>

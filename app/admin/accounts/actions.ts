@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient, writeAuditLog } from "@/lib/supabase/admin";
 import { regenerateInviteCode } from "@/data/invite";
@@ -99,6 +99,34 @@ export async function setPosterDisabled(userId: string, disabled: boolean) {
   if (error) throw new Error(`変更できませんでした：${error.message}`);
 
   await writeAuditLog(me.id, disabled ? "account_disable" : "account_enable", userId);
+  refresh();
+}
+
+// ---- 削除（停止中の投稿者だけ）。その人のアプリは、削除した管理者に引き継ぐ ----
+export async function deletePoster(userId: string) {
+  const me = await requireAdmin();
+  const target = await findPosterTarget(userId, me.id);
+  if ("error" in target) throw new Error(target.error);
+  if (!target.poster.approved_at) throw new Error("承認待ちのアカウントは「却下」を使ってください");
+
+  const admin = createAdminClient();
+  const { data: poster } = await admin.from("posters").select("disabled").eq("user_id", userId).single();
+  if (!poster?.disabled) throw new Error("削除できるのは停止中のアカウントだけです。先に停止してください");
+
+  // アプリの作成者を管理者に付け替える（アカウントを消すと、作成者の行も消えるため）
+  const { data: moved, error: moveError } = await admin
+    .from("apps")
+    .update({ owner_id: me.id })
+    .eq("owner_id", userId)
+    .select("id");
+  if (moveError) throw new Error(`アプリを引き継げませんでした：${moveError.message}`);
+
+  // アカウントを消すと、posters・profiles の行も一緒に消える（on delete cascade）
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) throw new Error(`削除できませんでした：${error.message}`);
+
+  await writeAuditLog(me.id, "account_delete", userId, { moved_apps: (moved ?? []).map((a) => a.id) });
+  updateTag("apps"); // サイトの「作成者」の表示を作り直す
   refresh();
 }
 

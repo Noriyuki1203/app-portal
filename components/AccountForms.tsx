@@ -3,6 +3,7 @@
 import { useActionState, useState, useSyncExternalStore, useTransition } from "react";
 import {
   approvePoster,
+  deletePoster,
   rejectPoster,
   renewInviteUrl,
   resetPosterPassword,
@@ -181,12 +182,34 @@ export function PendingActions({ userId, loginId }: { userId: string; loginId: s
 
 export function PosterActions({
   userId,
+  loginId,
   disabled,
+  appCount,
 }: {
   userId: string;
+  loginId: string;
   disabled: boolean;
+  appCount: number;
 }) {
   const [isToggling, startToggle] = useTransition();
+  const [isDeleting, startDelete] = useTransition();
+  const [deleteError, setDeleteError] = useState("");
+
+  function remove() {
+    const apps =
+      appCount > 0
+        ? `\nこの人のアプリ${appCount}件は削除されず、あなたが作成者として引き継ぎます。`
+        : "";
+    if (!window.confirm(`「${loginId}」のアカウントを削除しますか？元には戻せません。${apps}`)) return;
+    setDeleteError("");
+    startDelete(async () => {
+      try {
+        await deletePoster(userId);
+      } catch {
+        setDeleteError("削除できませんでした。画面を読み込み直して、もう一度試してください");
+      }
+    });
+  }
   const [resetState, resetAction, isResetting] = useActionState<AccountState>(
     resetPosterPassword.bind(null, userId),
     { error: "" },
@@ -218,7 +241,18 @@ export function PosterActions({
             {isResetting ? "再設定中…" : "パスワード再設定"}
           </button>
         </form>
+        {disabled && (
+          <button
+            type="button"
+            disabled={isDeleting}
+            onClick={remove}
+            className="rounded-full bg-red-600 px-3 py-1 text-xs font-semibold text-white hover:bg-red-500 disabled:opacity-50"
+          >
+            {isDeleting ? "削除中…" : "削除"}
+          </button>
+        )}
       </div>
+      {deleteError && <p className="text-xs text-red-600">{deleteError}</p>}
       {resetState.error && (
         <p className="text-xs text-red-600">{resetState.error}</p>
       )}

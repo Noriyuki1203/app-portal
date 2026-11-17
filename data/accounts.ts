@@ -10,6 +10,7 @@ export type Account = {
   role: "admin" | "poster" | "none";
   disabled: boolean;
   pending: boolean; // 招待URLから登録して、まだ承認していない
+  appCount: number; // 作成者になっているアプリの数
   displayName: string;
   realName: string;
   createdAt: string;
@@ -28,11 +29,17 @@ export async function listAccounts(): Promise<Account[]> {
     if (data.users.length < 200) break;
   }
 
-  const [{ data: admins }, { data: posters }, { data: profiles }] = await Promise.all([
+  const [{ data: admins }, { data: posters }, { data: profiles }, { data: apps }] = await Promise.all([
     admin.from("admins").select("user_id"),
     admin.from("posters").select("user_id, disabled, real_name, approved_at"),
     admin.from("profiles").select("id, display_name"),
+    admin.from("apps").select("owner_id"),
   ]);
+  const appCounts = new Map<string, number>();
+  for (const a of apps ?? []) {
+    const owner = a.owner_id as string | null;
+    if (owner) appCounts.set(owner, (appCounts.get(owner) ?? 0) + 1);
+  }
   const adminIds = new Set((admins ?? []).map((a) => a.user_id as string));
   const posterMap = new Map((posters ?? []).map((p) => [p.user_id as string, p.disabled as boolean]));
   const realNameMap = new Map((posters ?? []).map((p) => [p.user_id as string, (p.real_name as string | null) ?? ""]));
@@ -46,6 +53,7 @@ export async function listAccounts(): Promise<Account[]> {
       role: adminIds.has(u.id) ? ("admin" as const) : posterMap.has(u.id) ? ("poster" as const) : ("none" as const),
       disabled: posterMap.get(u.id) ?? false,
       pending: pendingIds.has(u.id),
+      appCount: appCounts.get(u.id) ?? 0,
       displayName: nameMap.get(u.id)?.trim() || UNSET_NAME,
       realName: realNameMap.get(u.id) ?? "",
       createdAt: u.created_at,
