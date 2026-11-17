@@ -4,92 +4,94 @@ import { randomBytes } from "node:crypto";
 import { refresh } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
 import { createAdminClient, writeAuditLog } from "@/lib/supabase/admin";
-import { LOGIN_DOMAIN } from "@/data/accounts";
+import { regenerateInviteCode } from "@/data/invite";
+import { BAN_FOREVER, readRealName } from "@/lib/accountRules";
 
 export type AccountState = {
   error: string;
   message?: string;
-  loginId?: string;
   password?: string;
 };
 
-// 初期パスワード（16文字の乱数）。画面に1回だけ出し、本人に伝えて変えてもらう
+// 再設定用のパスワード（16文字の乱数）。画面に1回だけ出し、本人に伝えて変えてもらう
 function newPassword(): string {
   return randomBytes(12).toString("base64url");
 }
 
-// 操作してよい相手か：投稿者であること（管理者や自分自身は対象外）
-async function requirePosterTarget(userId: string, adminId: string): Promise<string | null> {
-  if (userId === adminId) return "自分自身は操作できません";
+type PosterRow = { approved_at: string | null };
+
+// 操作してよい相手か：投稿者であること（管理者や自分自身は対象外）。投稿者の行を返す
+async function findPosterTarget(
+  userId: string,
+  adminId: string
+): Promise<{ poster: PosterRow } | { error: string }> {
+  if (userId === adminId) return { error: "自分自身は操作できません" };
   const admin = createAdminClient();
   const [{ data: isAdmin }, { data: poster }] = await Promise.all([
     admin.from("admins").select("user_id").eq("user_id", userId).maybeSingle(),
-    admin.from("posters").select("user_id").eq("user_id", userId).maybeSingle(),
+    admin.from("posters").select("approved_at").eq("user_id", userId).maybeSingle(),
   ]);
-  if (isAdmin) return "管理者のアカウントはここでは操作できません";
-  if (!poster) return "投稿者のアカウントではありません";
-  return null;
+  if (isAdmin) return { error: "管理者のアカウントはここでは操作できません" };
+  if (!poster) return { error: "投稿者のアカウントではありません" };
+  return { poster: poster as PosterRow };
 }
 
-const REAL_NAME_MAX = 50;
-
-// 本名を読む（前後の空白と制御文字を除く）。問題があれば error を返す
-function readRealName(formData: FormData): { value: string } | { error: string } {
-  const value = String(formData.get("real_name") ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim();
-  if (!value) return { error: "本名を入れてください" };
-  if (value.length > REAL_NAME_MAX) return { error: `本名は${REAL_NAME_MAX}文字以内にしてください` };
-  return { value };
-}
-
-// ---- 投稿者のアカウントを作る ----
-export async function createPoster(prevState: AccountState, formData: FormData): Promise<AccountState> {
+// ---- 招待URLを作り直す（前のURLは使えなくなる） ----
+export async function renewInviteUrl() {
   const me = await requireAdmin();
-  const loginId = String(formData.get("login_id") ?? "").trim().toLowerCase();
+  await regenerateInviteCode();
+  await writeAuditLog(me.id, "invite_renew", "invite");
+  refresh();
+}
 
-  if (!/^[a-z0-9][a-z0-9_-]{2,29}$/.test(loginId)) {
-    return { error: "ID は3〜30文字の半角の小文字・数字・ハイフン（-）・アンダーバー（_）にしてください（先頭は英数字）" };
-  }
-  const realName = readRealName(formData);
-  if ("error" in realName) return { error: realName.error };
+// ---- 承認（ログインできるようにする） ----
+export async function approvePoster(userId: string) {
+  const me = await requireAdmin();
+  const target = await findPosterTarget(userId, me.id);
+  if ("error" in target) throw new Error(target.error);
+  if (target.poster.approved_at) return; // もう承認済み
 
   const admin = createAdminClient();
-  const password = newPassword();
-  const { data, error } = await admin.auth.admin.createUser({
-    email: `${loginId}@${LOGIN_DOMAIN}`,
-    password,
-    email_confirm: true,
-  });
-  if (error || !data.user) {
-    if (error?.code === "email_exists" || /already/i.test(error?.message ?? "")) {
-      return { error: "その ID はもう使われています" };
-    }
-    return { error: `作成できませんでした：${error?.message ?? "不明なエラー"}` };
-  }
+  const { error: banError } = await admin.auth.admin.updateUserById(userId, { ban_duration: "none" });
+  if (banError) throw new Error(`承認できませんでした：${banError.message}`);
 
-  const { error: posterError } = await admin
+  const { error } = await admin
     .from("posters")
-    .insert({ user_id: data.user.id, real_name: realName.value });
-  if (posterError) {
-    // 投稿者の登録に失敗したら、作ったアカウントも消して元に戻す
-    await admin.auth.admin.deleteUser(data.user.id);
-    return { error: `作成できませんでした：${posterError.message}` };
-  }
+    .update({ approved_at: new Date().toISOString(), disabled: false })
+    .eq("user_id", userId);
+  if (error) throw new Error(`承認できませんでした：${error.message}`);
 
-  await writeAuditLog(me.id, "account_create", data.user.id, { login_id: loginId });
+  await writeAuditLog(me.id, "account_approve", userId);
   refresh();
-  return { error: "", message: "投稿者のアカウントを作りました", loginId, password };
 }
 
-// ---- 停止・再開 ----
+// ---- 却下（承認待ちの登録を消す） ----
+export async function rejectPoster(userId: string) {
+  const me = await requireAdmin();
+  const target = await findPosterTarget(userId, me.id);
+  if ("error" in target) throw new Error(target.error);
+  if (target.poster.approved_at) throw new Error("承認済みのアカウントは却下できません（停止を使ってください）");
+
+  const admin = createAdminClient();
+  // アカウントを消すと、posters・profiles の行も一緒に消える（on delete cascade）
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) throw new Error(`却下できませんでした：${error.message}`);
+
+  await writeAuditLog(me.id, "account_reject", userId);
+  refresh();
+}
+
+// ---- 停止・再開（承認済みの投稿者だけ） ----
 export async function setPosterDisabled(userId: string, disabled: boolean) {
   const me = await requireAdmin();
-  const problem = await requirePosterTarget(userId, me.id);
-  if (problem) throw new Error(problem);
+  const target = await findPosterTarget(userId, me.id);
+  if ("error" in target) throw new Error(target.error);
+  if (!target.poster.approved_at) throw new Error("承認待ちのアカウントは、承認か却下を選んでください");
 
   const admin = createAdminClient();
   // ログインそのものを止める（ban）＋ DBの決まりでも止める（disabled）の二重
   const { error: banError } = await admin.auth.admin.updateUserById(userId, {
-    ban_duration: disabled ? "876000h" : "none",
+    ban_duration: disabled ? BAN_FOREVER : "none",
   });
   if (banError) throw new Error(`変更できませんでした：${banError.message}`);
 
@@ -101,10 +103,10 @@ export async function setPosterDisabled(userId: string, disabled: boolean) {
 }
 
 // ---- 本名の変更 ----
-export async function updateRealName(userId: string, _prevState: AccountState, formData: FormData): Promise<AccountState> {
+export async function updateRealName(userId: string, _prev: AccountState, formData: FormData): Promise<AccountState> {
   const me = await requireAdmin();
-  const problem = await requirePosterTarget(userId, me.id);
-  if (problem) return { error: problem };
+  const target = await findPosterTarget(userId, me.id);
+  if ("error" in target) return { error: target.error };
 
   const realName = readRealName(formData);
   if ("error" in realName) return { error: realName.error };
@@ -118,11 +120,12 @@ export async function updateRealName(userId: string, _prevState: AccountState, f
   return { error: "", message: "本名を変更しました" };
 }
 
-// ---- パスワードの再設定 ----
-export async function resetPosterPassword(userId: string, _prevState: AccountState): Promise<AccountState> {
+// ---- パスワードの再設定（承認済みの投稿者だけ） ----
+export async function resetPosterPassword(userId: string): Promise<AccountState> {
   const me = await requireAdmin();
-  const problem = await requirePosterTarget(userId, me.id);
-  if (problem) return { error: problem };
+  const target = await findPosterTarget(userId, me.id);
+  if ("error" in target) return { error: target.error };
+  if (!target.poster.approved_at) return { error: "承認待ちのアカウントです" };
 
   const admin = createAdminClient();
   const password = newPassword();

@@ -9,16 +9,16 @@ export type LoginUser = {
     role: Role;
 };
 
-// ログイン中の人の役割。管理者でも（停止していない）投稿者でもなければ null
+// ログイン中の人の役割。管理者でも（承認済みで停止していない）投稿者でもなければ null
 export async function getRole(userId: string): Promise<Role | null> {
     const supabase = await createClient();
     // どちらの表も「本人は自分の行だけ読める」ので、自分の行が見えるかで判定できる
     const [{ data: admin }, { data: poster }] = await Promise.all([
         supabase.from("admins").select("user_id").eq("user_id", userId).maybeSingle(),
-        supabase.from("posters").select("disabled").eq("user_id", userId).maybeSingle(),
+        supabase.from("posters").select("disabled, approved_at").eq("user_id", userId).maybeSingle(),
     ]);
     if (admin) return "admin";
-    if (poster && !poster.disabled) return "poster";
+    if (poster && !poster.disabled && poster.approved_at) return "poster";
     return null;
 }
 

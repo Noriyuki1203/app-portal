@@ -21,6 +21,10 @@ export async function login(prevState: LoginState, formData: FormData): Promise<
   });
 
   if (error) {
+    // 承認待ち・停止中のアカウントは、Supabase 側でログインが止められている
+    if (error.code === "user_banned") {
+      return { error: "このアカウントは、管理者の承認待ちか停止中のため、まだログインできません" };
+    }
     return { error: "ID かパスワードが違います" };
   }
 

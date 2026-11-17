@@ -6,6 +6,7 @@ import { getAllApps } from "@/data/admin";
 import { getMyDisplayName } from "@/data/profiles";
 import { UNSET_NAME } from "@/lib/owner";
 import { logout } from "./actions";
+import { createClient } from "@/lib/supabase/server";
 import PlatformBadge from "@/components/PlatformBadge";
 
 export const metadata: Metadata = {
@@ -28,6 +29,16 @@ async function AdminContent() {
   const apps = await getAllApps(user);
   const displayName = await getMyDisplayName(user.id);
   const isAdmin = user.role === "admin";
+  // 承認待ちの人数（管理者だけ。posters 表は管理者ならすべて読める）
+  let pendingCount = 0;
+  if (isAdmin) {
+    const supabase = await createClient();
+    const { count } = await supabase
+      .from("posters")
+      .select("user_id", { count: "exact", head: true })
+      .is("approved_at", null);
+    pendingCount = count ?? 0;
+  }
 
   return (
     <>
@@ -69,6 +80,11 @@ async function AdminContent() {
           <Link href="/admin/accounts"
             className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
             アカウント管理
+            {pendingCount > 0 && (
+              <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs font-semibold text-white">
+                承認待ち {pendingCount}
+              </span>
+            )}
           </Link>
           <Link href="/admin/logs"
             className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">

@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { listAccounts } from "@/data/accounts";
-import { CreatePosterForm, PosterActions, RealNameForm } from "@/components/AccountForms";
+import { InviteUrlBox, PendingActions, PosterActions, RealNameForm } from "@/components/AccountForms";
+import { getOrCreateInviteCode } from "@/data/invite";
 
 export const metadata: Metadata = {
   title: "アカウント管理 | アプリ配布サイト",
@@ -37,13 +38,52 @@ async function AccountsContent() {
     );
   }
 
-  const accounts = await listAccounts();
+  const [all, inviteCode] = await Promise.all([listAccounts(), getOrCreateInviteCode()]);
+  const pending = all.filter((a) => a.pending);
+  const accounts = all.filter((a) => !a.pending);
 
   return (
     <>
       <section className="mt-6">
-        <h2 className="text-xl font-bold">投稿者を追加</h2>
-        <CreatePosterForm />
+        <h2 className="text-xl font-bold">投稿者の招待</h2>
+        <InviteUrlBox code={inviteCode} />
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-xl font-bold">
+          承認待ち（{pending.length}件）
+          {pending.length > 0 && (
+            <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 align-middle text-xs text-amber-800">
+              確認してください
+            </span>
+          )}
+        </h2>
+        {pending.length === 0 ? (
+          <p className="mt-3 text-sm text-zinc-500">承認待ちの登録はありません。</p>
+        ) : (
+          <table className="mt-4 w-full text-left text-sm">
+            <thead className="border-b border-zinc-300 text-zinc-500">
+              <tr>
+                <th className="py-2">ID</th>
+                <th className="py-2">本名</th>
+                <th className="py-2">登録した日時</th>
+                <th className="py-2"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pending.map((a) => (
+                <tr key={a.id} className="border-b border-zinc-200 align-top">
+                  <td className="py-2 font-mono">{a.loginId}</td>
+                  <td className="py-2">{a.realName}</td>
+                  <td className="py-2 text-zinc-500">{dateTime(a.createdAt)}</td>
+                  <td className="py-2">
+                    <PendingActions userId={a.id} loginId={a.loginId} />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </section>
 
       <section className="mt-10">
