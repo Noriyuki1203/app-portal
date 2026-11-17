@@ -26,6 +26,30 @@ function readAppForm(formData: FormData) {
   };
 }
 
+// フォームの値を確かめる（追加と更新で共通）。問題があればエラーの文、なければ null
+function validateApp(app: ReturnType<typeof readAppForm>): string | null {
+  if (!app.name) {
+    return "アプリ名を入れてください";
+  }
+  if (!isPlatform(app.platform)) {
+    return "種類を選んでください";
+  }
+  // ダウンロード・Webアプリの URL は https:// だけ受け付ける
+  // （javascript: などを登録されると、サイトを見た人のブラウザーで勝手に動くおそれがある）
+  if (app.download_url) {
+    let url: URL | null = null;
+    try {
+      url = new URL(app.download_url);
+    } catch {
+      // 下でエラーにする
+    }
+    if (!url || url.protocol !== "https:") {
+      return "URL は https:// で始まる形で入れてください";
+    }
+  }
+  return null;
+}
+
 // ---- 問8-2 追加 ----
 export async function createApp(prevState: FormState, formData: FormData): Promise<FormState> {
   await requireLogin();
@@ -36,11 +60,9 @@ export async function createApp(prevState: FormState, formData: FormData): Promi
   if (!/^[a-z0-9-]+$/.test(id)) {
     return { error: "ID は半角の小文字・数字・ハイフン（-）だけで書いてください" };
   }
-  if (!app.name) {
-    return { error: "アプリ名を入れてください" };
-  }
-  if (!isPlatform(app.platform)) {
-    return { error: "種類を選んでください" };
+  const invalid = validateApp(app);
+  if (invalid) {
+    return { error: invalid };
   }
 
   // アイコンは任意。選ばれていれば、アプリを追加する前に画像かどうかを確かめる
@@ -85,21 +107,24 @@ export async function updateApp(
   await requireLogin();
 
   const app = readAppForm(formData);
-  if (!app.name) {
-    return { error: "アプリ名を入れてください" };
-  }
-  if (!isPlatform(app.platform)) {
-    return { error: "種類を選んでください" };
+  const invalid = validateApp(app);
+  if (invalid) {
+    return { error: invalid };
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: updated, error } = await supabase
     .from("apps")
     .update({ ...app, updated_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .select("id");
 
   if (error) {
     return { error: `保存できませんでした：${error.message}` };
+  }
+  // DBの決まりで弾かれると、エラーではなく「0件更新」になる（他人のアプリ・停止中など）
+  if (!updated || updated.length === 0) {
+    return { error: "保存できませんでした（このアプリを変更する権限がありません）" };
   }
 
   updateTag("apps");
