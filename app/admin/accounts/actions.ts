@@ -31,6 +31,16 @@ async function requirePosterTarget(userId: string, adminId: string): Promise<str
   return null;
 }
 
+const REAL_NAME_MAX = 50;
+
+// 本名を読む（前後の空白と制御文字を除く）。問題があれば error を返す
+function readRealName(formData: FormData): { value: string } | { error: string } {
+  const value = String(formData.get("real_name") ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim();
+  if (!value) return { error: "本名を入れてください" };
+  if (value.length > REAL_NAME_MAX) return { error: `本名は${REAL_NAME_MAX}文字以内にしてください` };
+  return { value };
+}
+
 // ---- 投稿者のアカウントを作る ----
 export async function createPoster(prevState: AccountState, formData: FormData): Promise<AccountState> {
   const me = await requireAdmin();
@@ -39,6 +49,8 @@ export async function createPoster(prevState: AccountState, formData: FormData):
   if (!/^[a-z0-9][a-z0-9_-]{2,29}$/.test(loginId)) {
     return { error: "ID は3〜30文字の半角の小文字・数字・ハイフン（-）・アンダーバー（_）にしてください（先頭は英数字）" };
   }
+  const realName = readRealName(formData);
+  if ("error" in realName) return { error: realName.error };
 
   const admin = createAdminClient();
   const password = newPassword();
@@ -54,7 +66,9 @@ export async function createPoster(prevState: AccountState, formData: FormData):
     return { error: `作成できませんでした：${error?.message ?? "不明なエラー"}` };
   }
 
-  const { error: posterError } = await admin.from("posters").insert({ user_id: data.user.id });
+  const { error: posterError } = await admin
+    .from("posters")
+    .insert({ user_id: data.user.id, real_name: realName.value });
   if (posterError) {
     // 投稿者の登録に失敗したら、作ったアカウントも消して元に戻す
     await admin.auth.admin.deleteUser(data.user.id);
@@ -84,6 +98,24 @@ export async function setPosterDisabled(userId: string, disabled: boolean) {
 
   await writeAuditLog(me.id, disabled ? "account_disable" : "account_enable", userId);
   refresh();
+}
+
+// ---- 本名の変更 ----
+export async function updateRealName(userId: string, _prevState: AccountState, formData: FormData): Promise<AccountState> {
+  const me = await requireAdmin();
+  const problem = await requirePosterTarget(userId, me.id);
+  if (problem) return { error: problem };
+
+  const realName = readRealName(formData);
+  if ("error" in realName) return { error: realName.error };
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("posters").update({ real_name: realName.value }).eq("user_id", userId);
+  if (error) return { error: `変更できませんでした：${error.message}` };
+
+  await writeAuditLog(me.id, "account_real_name", userId);
+  refresh();
+  return { error: "", message: "本名を変更しました" };
 }
 
 // ---- パスワードの再設定 ----

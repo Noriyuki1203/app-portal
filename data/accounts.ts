@@ -10,6 +10,7 @@ export type Account = {
   role: "admin" | "poster" | "none";
   disabled: boolean;
   displayName: string;
+  realName: string;
   createdAt: string;
   lastSignInAt: string | null;
 };
@@ -28,11 +29,12 @@ export async function listAccounts(): Promise<Account[]> {
 
   const [{ data: admins }, { data: posters }, { data: profiles }] = await Promise.all([
     admin.from("admins").select("user_id"),
-    admin.from("posters").select("user_id, disabled"),
+    admin.from("posters").select("user_id, disabled, real_name"),
     admin.from("profiles").select("id, display_name"),
   ]);
   const adminIds = new Set((admins ?? []).map((a) => a.user_id as string));
   const posterMap = new Map((posters ?? []).map((p) => [p.user_id as string, p.disabled as boolean]));
+  const realNameMap = new Map((posters ?? []).map((p) => [p.user_id as string, (p.real_name as string | null) ?? ""]));
   const nameMap = new Map((profiles ?? []).map((p) => [p.id as string, p.display_name as string]));
 
   return users
@@ -42,6 +44,7 @@ export async function listAccounts(): Promise<Account[]> {
       role: adminIds.has(u.id) ? ("admin" as const) : posterMap.has(u.id) ? ("poster" as const) : ("none" as const),
       disabled: posterMap.get(u.id) ?? false,
       displayName: nameMap.get(u.id)?.trim() || UNSET_NAME,
+      realName: realNameMap.get(u.id) ?? "",
       createdAt: u.created_at,
       lastSignInAt: u.last_sign_in_at ?? null,
     }))

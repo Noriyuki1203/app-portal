@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requireAdmin } from "@/lib/auth";
 import { listAccounts } from "@/data/accounts";
-import { CreatePosterForm, PosterActions } from "@/components/AccountForms";
+import { CreatePosterForm, PosterActions, RealNameForm } from "@/components/AccountForms";
 
 export const metadata: Metadata = {
   title: "アカウント管理 | アプリ配布サイト",
@@ -52,6 +52,7 @@ async function AccountsContent() {
           <thead className="border-b border-zinc-300 text-zinc-500">
             <tr>
               <th className="py-2">ID / 表示名</th>
+              <th className="py-2">本名</th>
               <th className="py-2">役割</th>
               <th className="py-2">最後のログイン</th>
               <th className="py-2"></th>
@@ -63,6 +64,13 @@ async function AccountsContent() {
                 <td className="py-2">
                   <p className="font-mono">{a.loginId}</p>
                   <p className="text-zinc-500">{a.displayName}</p>
+                </td>
+                <td className="py-2">
+                  {a.role === "poster" ? (
+                    <RealNameForm userId={a.id} realName={a.realName} />
+                  ) : (
+                    <span className="text-zinc-400">—</span>
+                  )}
                 </td>
                 <td className="py-2">
                   {a.role === "admin" ? (
