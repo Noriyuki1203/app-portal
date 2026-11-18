@@ -33,7 +33,7 @@ export default function AppCard({ app }: Props) {
         <p className="text-sm text-zinc-600">{app.summary}</p>
         <div className="mt-2 flex items-center gap-2">
           <PlatformBadge platform={app.platform} />
-          {!app.is_published && <LimitedBadge />}
+          <LimitedBadge visibility={app.visibility} />
           <span className="text-xs text-zinc-500">{app.version}</span>
         </div>
         <p className="mt-1 text-xs text-zinc-500">作成者：{ownerName(app)}</p>

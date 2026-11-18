@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireLogin } from "@/lib/auth";
 import { BUCKET, extensionOf, pathFromPublicUrl } from "@/lib/storage";
 import { isPlatform } from "@/lib/platforms";
+import { isVisibility } from "@/lib/visibility";
 
 export type FormState = {
   error: string;
@@ -40,8 +41,8 @@ function readAppForm(formData: FormData) {
     download_url: String(formData.get("download_url") ?? "").trim(),
     // 空なら null（詳細ページに「ストアで入手」ボタンを出さない）
     store_url: String(formData.get("store_url") ?? "").trim() || null,
-    // 公開の範囲：一般 = true、限定（作成者本人だけ）= false
-    is_published: formData.get("visibility") === "public",
+    // 公開の範囲：public（一般）・limited（限定）・private（非公開）
+    visibility: String(formData.get("visibility") ?? ""),
     platform: String(formData.get("platform") ?? ""),
   };
 }
@@ -53,6 +54,9 @@ function validateApp(app: ReturnType<typeof readAppForm>): string | null {
   }
   if (!isPlatform(app.platform)) {
     return "種類を選んでください";
+  }
+  if (!isVisibility(app.visibility)) {
+    return "公開の範囲を選んでください";
   }
   // ダウンロード・Webアプリ・ストアの URL は https:// だけ受け付ける
   // （javascript: などを登録されると、サイトを見た人のブラウザーで勝手に動くおそれがある）

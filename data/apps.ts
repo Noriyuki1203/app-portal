@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase/public";
 import { createClient } from "@/lib/supabase/server";
 import type { Screenshot } from "@/data/screenshots";
 import type { Platform } from "@/lib/platforms";
+import type { Visibility } from "@/lib/visibility";
 
 
 export type AppInfo = {
@@ -16,8 +17,8 @@ export type AppInfo = {
   download_url: string;
   // ストアのページの URL（Microsoft Store など）。ストアで配っていなければ null
   store_url: string | null;
-  // true = 一般（だれでも見られる）、false = 限定（作成者本人だけ）
-  is_published: boolean;
+  // 公開の範囲（一般・限定・非公開）。lib/visibility.ts
+  visibility: Visibility;
   updated_at: string;
   owner_id: string | null;
   platform: Platform;
@@ -36,7 +37,7 @@ export async function getPublishedApps(): Promise<AppInfo[]> {
   const { data, error } = await supabase
     .from("apps")
     .select(PUBLIC_COLUMNS)
-    .eq("is_published", true)
+    .eq("visibility", "public")
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -55,7 +56,7 @@ export async function getAppById(id: string): Promise<AppInfo | null> {
     .from("apps")
     .select(PUBLIC_COLUMNS)
     .eq("id", id)
-    .eq("is_published", true)
+    .eq("visibility", "public")
     .maybeSingle();
 
   if (error) {
@@ -64,10 +65,11 @@ export async function getAppById(id: string): Promise<AppInfo | null> {
   return data;
 }
 
-// ---- 限定公開（is_published = false）のアプリ ----
-// 限定のアプリは、サイト上では作成者本人にだけ見せる。
+// ---- 限定・非公開のアプリ ----
+// 限定は投稿者（承認済み・停止していない）と管理者、非公開は作成者本人だけがサイト上で見られる。
 // ログイン中の人ごとに結果が変わるので、キャッシュせず、ログイン中の人の権限（RLS）で読む。
-// 管理者は RLS 上すべて読めるため、owner_id で本人のものだけに絞る。
+// 管理者は RLS 上すべて読めるため、非公開は owner_id で本人のものだけに絞る。
+// 限定を読めるかは RLS（「限定のアプリは投稿者が読める」）が決める。
 
 async function currentUserId(): Promise<string | null> {
   const client = await createClient();
@@ -75,8 +77,12 @@ async function currentUserId(): Promise<string | null> {
   return data?.claims?.sub ?? null;
 }
 
-// ログイン中の人が作成者の、限定のアプリ。未ログインなら空
-export async function getMyLimitedApps(): Promise<AppInfo[]> {
+// 「限定」または「自分の非公開」の条件（PostgREST の or 指定）
+const membersOnly = (userId: string) =>
+  `visibility.eq.limited,and(visibility.eq.private,owner_id.eq.${userId})`;
+
+// ログイン中の人が見られる、一般以外のアプリ。未ログインなら空
+export async function getMemberApps(): Promise<AppInfo[]> {
   const userId = await currentUserId();
   if (!userId) return [];
 
@@ -84,8 +90,7 @@ export async function getMyLimitedApps(): Promise<AppInfo[]> {
   const { data, error } = await client
     .from("apps")
     .select(PUBLIC_COLUMNS)
-    .eq("is_published", false)
-    .eq("owner_id", userId)
+    .or(membersOnly(userId))
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -94,8 +99,8 @@ export async function getMyLimitedApps(): Promise<AppInfo[]> {
   return data;
 }
 
-// ログイン中の人が作成者の、限定のアプリ1件（画像つき）。見つからなければ null
-export async function getMyLimitedAppById(
+// ログイン中の人が見られる、一般以外のアプリ1件（画像つき）。見つからなければ null
+export async function getMemberAppById(
   id: string
 ): Promise<{ app: AppInfo; screenshots: Screenshot[] } | null> {
   const userId = await currentUserId();
@@ -106,8 +111,7 @@ export async function getMyLimitedAppById(
     .from("apps")
     .select(PUBLIC_COLUMNS)
     .eq("id", id)
-    .eq("is_published", false)
-    .eq("owner_id", userId)
+    .or(membersOnly(userId))
     .maybeSingle();
 
   if (error) {

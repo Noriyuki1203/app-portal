@@ -126,7 +126,7 @@ async function AdminContent() {
                 <PlatformBadge platform={app.platform} />
               </td>
               <td className="py-2">
-                {app.is_published ? "一般" : <LimitedBadge />}
+                {app.visibility === "public" ? "一般" : <LimitedBadge visibility={app.visibility} />}
               </td>
               <td className="py-2">
                 {new Date(app.updated_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}

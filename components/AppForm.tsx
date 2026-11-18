@@ -1,5 +1,6 @@
 "use client";
 
+import { VISIBILITIES, VISIBILITY_DESCRIPTIONS, VISIBILITY_LABELS } from "@/lib/visibility";
 import { useActionState } from "react";
 import type { AppInfo } from "@/data/apps";
 import type { FormState } from "@/app/admin/apps/actions";
@@ -18,8 +19,8 @@ export default function AppForm({ action, app }: Props) {
     // エラーで戻ってきたときは、送った内容を初期値にする（送信後にフォームが空に戻るのを防ぐ）
     const sent = state.values;
     const initial = (name: string, saved?: string) => (sent ? sent[name] ?? "" : saved);
-    // 公開の範囲。新しく追加するときは「限定」から始める（あとで一般に切り替える）
-    const isPublic = sent ? sent.visibility === "public" : !!app?.is_published;
+    // 公開の範囲。新しく追加するときは「非公開」から始める（準備ができたら切り替える）
+    const visibility = sent ? sent.visibility : app?.visibility ?? "private";
 
     return (
         <form key={state.attempt ?? 0} action={formAction} className="mt-6 space-y-4">
@@ -122,14 +123,14 @@ export default function AppForm({ action, app }: Props) {
             )}
             <fieldset>
                 <legend className="text-sm text-zinc-600">公開の範囲</legend>
-                <label className="mt-1 flex items-center gap-2">
-                    <input name="visibility" type="radio" value="public" defaultChecked={isPublic} />
-                    <span>一般（だれでも見られる）</span>
-                </label>
-                <label className="mt-1 flex items-center gap-2">
-                    <input name="visibility" type="radio" value="limited" defaultChecked={!isPublic} />
-                    <span>限定（作成者のあなただけ。ログイン中にサイトを開くと見られます）</span>
-                </label>
+                {VISIBILITIES.map((v) => (
+                    <label key={v} className="mt-1 flex items-center gap-2">
+                        <input name="visibility" type="radio" value={v} defaultChecked={visibility === v} />
+                        <span>
+                            {VISIBILITY_LABELS[v]}（{VISIBILITY_DESCRIPTIONS[v]}）
+                        </span>
+                    </label>
+                ))}
             </fieldset>
             {state.error && (
                 <p className="text-sm text-red-600">

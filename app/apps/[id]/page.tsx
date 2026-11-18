@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { getAppById, getMyLimitedAppById, getPublishedApps, type AppInfo } from "@/data/apps";
+import { getAppById, getMemberAppById, getPublishedApps, type AppInfo } from "@/data/apps";
 import { ownerName } from "@/lib/owner";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -39,7 +39,7 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
   const app = await getAppById(id);
 
   if (!app) {
-    // 一般のアプリになければ、ログイン中の人の限定のアプリを探す（作成者本人だけ見られる）
+    // 一般のアプリになければ、ログイン中の人が見られる限定・非公開のアプリを探す
     return (
       <Suspense fallback={<p className="mx-auto max-w-3xl p-8 text-zinc-500">読み込み中…</p>}>
         <LimitedAppDetail id={id} />
@@ -51,7 +51,7 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
 }
 
 async function LimitedAppDetail({ id }: { id: string }) {
-  const found = await getMyLimitedAppById(id);
+  const found = await getMemberAppById(id);
   if (!found) {
     notFound();
   }
@@ -67,11 +67,16 @@ function AppDetail({ app, screenshots }: { app: AppInfo; screenshots: Screenshot
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">{app.name}</h1>
         <PlatformBadge platform={app.platform} />
-        {!app.is_published && <LimitedBadge />}
+        <LimitedBadge visibility={app.visibility} />
       </div>
-      {!app.is_published && (
+      {app.visibility === "limited" && (
         <p className="mt-2 text-sm text-amber-800">
-          限定のアプリです。作成者のあなたにだけ表示されています（ほかの人には見えません）。
+          限定のアプリです。投稿者として登録している人にだけ表示されています。
+        </p>
+      )}
+      {app.visibility === "private" && (
+        <p className="mt-2 text-sm text-zinc-600">
+          非公開のアプリです。作成者のあなたにだけ表示されています（ほかの人には見えません）。
         </p>
       )}
       <p className="mt-4 whitespace-pre-line">{app.description}</p>
