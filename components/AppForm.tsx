@@ -18,6 +18,8 @@ export default function AppForm({ action, app }: Props) {
     // エラーで戻ってきたときは、送った内容を初期値にする（送信後にフォームが空に戻るのを防ぐ）
     const sent = state.values;
     const initial = (name: string, saved?: string) => (sent ? sent[name] ?? "" : saved);
+    // 公開の範囲。新しく追加するときは「限定」から始める（あとで一般に切り替える）
+    const isPublic = sent ? sent.visibility === "public" : !!app?.is_published;
 
     return (
         <form key={state.attempt ?? 0} action={formAction} className="mt-6 space-y-4">
@@ -118,10 +120,17 @@ export default function AppForm({ action, app }: Props) {
                     <input name="icon" type="file" accept="image/*" className="mt-1 block text-sm" />
                 </label>
             )}
-            <label className="flex items-center gap-2">
-                <input name="is_published" type="checkbox" defaultChecked={sent ? sent.is_published === "on" : app?.is_published} />
-                <span>公開する</span>
-            </label>
+            <fieldset>
+                <legend className="text-sm text-zinc-600">公開の範囲</legend>
+                <label className="mt-1 flex items-center gap-2">
+                    <input name="visibility" type="radio" value="public" defaultChecked={isPublic} />
+                    <span>一般（だれでも見られる）</span>
+                </label>
+                <label className="mt-1 flex items-center gap-2">
+                    <input name="visibility" type="radio" value="limited" defaultChecked={!isPublic} />
+                    <span>限定（作成者のあなただけ。ログイン中にサイトを開くと見られます）</span>
+                </label>
+            </fieldset>
             {state.error && (
                 <p className="text-sm text-red-600">
                     {state.error}

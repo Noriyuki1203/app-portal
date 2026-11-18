@@ -40,7 +40,8 @@ function readAppForm(formData: FormData) {
     download_url: String(formData.get("download_url") ?? "").trim(),
     // 空なら null（詳細ページに「ストアで入手」ボタンを出さない）
     store_url: String(formData.get("store_url") ?? "").trim() || null,
-    is_published: formData.get("is_published") === "on",
+    // 公開の範囲：一般 = true、限定（作成者本人だけ）= false
+    is_published: formData.get("visibility") === "public",
     platform: String(formData.get("platform") ?? ""),
   };
 }

@@ -3,6 +3,7 @@ import Image from "next/image";
 import type { AppInfo } from "@/data/apps";
 import { ownerName } from "@/lib/owner";
 import PlatformBadge from "./PlatformBadge";
+import LimitedBadge from "./LimitedBadge";
 
 type Props = {
   app: AppInfo;
@@ -32,6 +33,7 @@ export default function AppCard({ app }: Props) {
         <p className="text-sm text-zinc-600">{app.summary}</p>
         <div className="mt-2 flex items-center gap-2">
           <PlatformBadge platform={app.platform} />
+          {!app.is_published && <LimitedBadge />}
           <span className="text-xs text-zinc-500">{app.version}</span>
         </div>
         <p className="mt-1 text-xs text-zinc-500">作成者：{ownerName(app)}</p>

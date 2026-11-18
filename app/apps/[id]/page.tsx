@@ -1,11 +1,13 @@
-import { getAppById, getPublishedApps } from "@/data/apps";
+import { Suspense } from "react";
+import { getAppById, getMyLimitedAppById, getPublishedApps, type AppInfo } from "@/data/apps";
 import { ownerName } from "@/lib/owner";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import ScreenshotGallery from "@/components/ScreenshotGallery";
 import PlatformBadge from "@/components/PlatformBadge";
-import { getScreenshotsByAppId } from "@/data/screenshots";
+import LimitedBadge from "@/components/LimitedBadge";
+import { getScreenshotsByAppId, type Screenshot } from "@/data/screenshots";
 import { PLATFORM_LABELS, STORE_LABELS } from "@/lib/platforms";
 
 export async function generateStaticParams() {
@@ -37,9 +39,26 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
   const app = await getAppById(id);
 
   if (!app) {
-    notFound();
+    // 一般のアプリになければ、ログイン中の人の限定のアプリを探す（作成者本人だけ見られる）
+    return (
+      <Suspense fallback={<p className="mx-auto max-w-3xl p-8 text-zinc-500">読み込み中…</p>}>
+        <LimitedAppDetail id={id} />
+      </Suspense>
+    );
   }
   const screenshots = await getScreenshotsByAppId(app.id);
+  return <AppDetail app={app} screenshots={screenshots} />;
+}
+
+async function LimitedAppDetail({ id }: { id: string }) {
+  const found = await getMyLimitedAppById(id);
+  if (!found) {
+    notFound();
+  }
+  return <AppDetail app={found.app} screenshots={found.screenshots} />;
+}
+
+function AppDetail({ app, screenshots }: { app: AppInfo; screenshots: Screenshot[] }) {
   const isWeb = app.platform === "web";
   const hasStore = !isWeb && !!app.store_url;
 
@@ -48,7 +67,13 @@ export default async function AppDetailPage(props: PageProps<"/apps/[id]">) {
       <div className="flex flex-wrap items-center gap-3">
         <h1 className="text-2xl font-bold">{app.name}</h1>
         <PlatformBadge platform={app.platform} />
+        {!app.is_published && <LimitedBadge />}
       </div>
+      {!app.is_published && (
+        <p className="mt-2 text-sm text-amber-800">
+          限定のアプリです。作成者のあなたにだけ表示されています（ほかの人には見えません）。
+        </p>
+      )}
       <p className="mt-4 whitespace-pre-line">{app.description}</p>
       {screenshots.length > 0 && <ScreenshotGallery screenshots={screenshots} />}
       <dl className="mt-6 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">

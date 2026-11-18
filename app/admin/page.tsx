@@ -8,6 +8,7 @@ import { UNSET_NAME } from "@/lib/owner";
 import { logout } from "./actions";
 import { createClient } from "@/lib/supabase/server";
 import PlatformBadge from "@/components/PlatformBadge";
+import LimitedBadge from "@/components/LimitedBadge";
 
 export const metadata: Metadata = {
   title: "管理ページ｜アプリ配布サイト",
@@ -125,11 +126,7 @@ async function AdminContent() {
                 <PlatformBadge platform={app.platform} />
               </td>
               <td className="py-2">
-                {app.is_published ? (
-                  "公開中"
-                ) : (
-                  <span className="text-zinc-400">非公開</span>
-                )}
+                {app.is_published ? "一般" : <LimitedBadge />}
               </td>
               <td className="py-2">
                 {new Date(app.updated_at).toLocaleDateString("ja-JP", { timeZone: "Asia/Tokyo" })}
