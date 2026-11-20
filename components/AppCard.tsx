@@ -13,7 +13,7 @@ export default function AppCard({ app }: Props) {
   return (
     <Link
       href={`/apps/${app.id}`}
-      className="flex gap-4 rounded-lg border border-zinc-200 p-4"
+      className="flex h-full gap-4 rounded-lg border border-zinc-200 p-4"
     >
       {app.icon_url ? (
         <Image
@@ -28,9 +28,17 @@ export default function AppCard({ app }: Props) {
           {app.name[0]}
         </div>
       )}
-      <div>
-        <p className="font-semibold">{app.name}</p>
-        <p className="text-sm text-zinc-600">{app.summary}</p>
+      <div className="min-w-0 flex-1">
+        <p className="truncate font-semibold" title={app.name}>
+          {app.name}
+        </p>
+        {/* 説明は2行まで。あふれたら「…」にし、短くても2行分の高さを確保してカードをそろえる */}
+        <p
+          className="line-clamp-2 min-h-10 break-words text-sm text-zinc-600"
+          title={app.summary}
+        >
+          {app.summary}
+        </p>
         <div className="mt-2 flex items-center gap-2">
           <PlatformBadge platform={app.platform} />
           <LimitedBadge visibility={app.visibility} />
