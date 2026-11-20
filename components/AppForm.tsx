@@ -100,6 +100,13 @@ export default function AppForm({ action, app }: Props) {
                     defaultValue={initial("download_url", app?.download_url)}
                     className={inputClass}
                 />
+                <span className="mt-1 block text-xs text-zinc-500">
+                    ファイルの置き方と URL の取り方は{" "}
+                    <a href="/admin/guide" target="_blank" className="text-blue-600 hover:underline">
+                        公開のしかた
+                    </a>
+                    {" "}を見てください（別のタブで開きます）
+                </span>
             </label>
             <label className="block">
                 <span className="text-sm text-zinc-600">

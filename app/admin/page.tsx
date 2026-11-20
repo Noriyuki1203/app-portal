@@ -57,7 +57,11 @@ async function AdminContent() {
             )}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <Link href="/admin/guide"
+            className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
+            公開のしかた
+          </Link>
           <Link href="/admin/profile"
             className="rounded-full border border-zinc-300 px-4 py-2 text-sm hover:bg-zinc-100">
             表示名の変更
